@@ -107,18 +107,27 @@ export class OccupancyGrid extends THREE.Mesh {
    * @returns {Array<number>} RGBA颜色数组，值范围为0-255。
    */
   getColor(value) {
-    if (value === -1) {
-      return [
-        this.unknownColor.r,
-        this.unknownColor.g,
-        this.unknownColor.b,
-        255,
-      ];
-    } else if (value === 0) {
-      return [0, 0, 0, 0]; // 透明
-    } else {
-      const intensity = value / 100.0; // 将值 [1, 100] 正确映射到强度 [0.01, 1.0]
-      return [this.color.r * intensity, this.color.g * intensity, this.color.b * intensity, 255];
-    }
+    // if (value === -1) {
+    //   return [
+    //     this.unknownColor.r,
+    //     this.unknownColor.g,
+    //     this.unknownColor.b,
+    //     255,
+    //   ];
+    // } else if (value === 0) {
+    //   return [0, 0, 0, 0]; // 透明
+    // } else {
+    //   const intensity = value / 100.0; // 将值 [1, 100] 正确映射到强度 [0.01, 1.0]
+    //   return [this.color.r * intensity, this.color.g * intensity, this.color.b * intensity, 255];
+    // }
+     var colorMap = {
+      "0": [255, 255, 255, 255], // 空闲：白色
+      "100": [0, 0, 0, 255],     // 占用：黑色
+      "-1": [128, 128, 128, 255] // 未知：灰色
+    };
+    // 获取颜色值
+    var colorValue = colorMap[`${value}`] || [255, 255, 255, 255]; // 默认为白色
+
+    return colorValue;
   }
 }
