@@ -22,7 +22,7 @@ export class PointCloud2 extends THREE.Object3D {
    * @param {string} [options.topic='/points'] - 要监听的 `sensor_msgs/PointCloud2` 主题。
    * @param {object} options.tfClient - 用于坐标变换的TF客户端。
    * @param {number} [options.throttle_rate] - 消息节流速率（毫秒）。
-   * @param {string} [options.compression='cbor'] - 消息压缩方式。
+   * @param {string} [options.compression] - 消息压缩方式。默认为 undefined (不压缩/JSON)。
    * @param {number} [options.max_pts=10000] - 要绘制的最大点数。
    * @param {THREE.Object3D} [options.rootObject] - 用于添加点云的根对象。
    * @param {string} [options.colorsrc] - 用于着色的字段名。
@@ -37,7 +37,7 @@ export class PointCloud2 extends THREE.Object3D {
       ros,
       topic = "/points",
       throttle_rate = null,
-      compression = "cbor",
+      compression, // 默认为 undefined，以避免 worker 中的 DataCloneError
       rootObject,
       ...pointsOptions // 收集其余所有参数给Points
     } = options;
@@ -62,7 +62,7 @@ export class PointCloud2 extends THREE.Object3D {
 
     logger.debug(
       "PointCloud2 component initialized for topic:",
-      this.topicName
+      this.topicName,
     );
     if (this.ros) {
       this.subscribe();
@@ -142,14 +142,14 @@ export class PointCloud2 extends THREE.Object3D {
       const sourceData = msg.data;
       const slicedData = sourceData.slice(
         0,
-        Math.min(sourceData.byteLength, bufSz)
+        Math.min(sourceData.byteLength, bufSz),
       );
       dv = new DataView(slicedData.buffer);
       n = Math.floor(
         Math.min(
           (msg.height * msg.width) / pointRatio,
-          this.points.positions.array.length / 3
-        )
+          this.points.positions.array.length / 3,
+        ),
       );
     }
 
@@ -165,15 +165,15 @@ export class PointCloud2 extends THREE.Object3D {
       const base = i * pointRatio * msg.point_step;
       this.points.positions.array[3 * i] = dv.getFloat32(
         base + x.offset,
-        littleEndian
+        littleEndian,
       );
       this.points.positions.array[3 * i + 1] = dv.getFloat32(
         base + y.offset,
-        littleEndian
+        littleEndian,
       );
       this.points.positions.array[3 * i + 2] = dv.getFloat32(
         base + z.offset,
-        littleEndian
+        littleEndian,
       );
 
       if (this.points.colors) {
@@ -182,7 +182,8 @@ export class PointCloud2 extends THREE.Object3D {
 
         const colorField = this.points.fields[this.points.colorsrc];
         const isRgbFloat =
-          this.points.colorsrc === "rgb" || this.points.colorsrc === "rgb_float";
+          this.points.colorsrc === "rgb" ||
+          this.points.colorsrc === "rgb_float";
 
         if (colorField && colorField.datatype === 7 && isRgbFloat) {
           // Handle packed RGB float
@@ -193,7 +194,7 @@ export class PointCloud2 extends THREE.Object3D {
           color = new THREE.Color(
             byteView[2] / 255.0, // r
             byteView[1] / 255.0, // g
-            byteView[0] / 255.0 // b
+            byteView[0] / 255.0, // b
           );
         } else {
           // Handle other fields by normalizing and using colormap
